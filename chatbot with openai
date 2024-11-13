@@ -1,0 +1,43 @@
+from langchain.chat_models import ChatOpenAI
+from langchain.chains import ConversationChain
+from langchain.prompts import PromptTemplate
+
+# Set your OpenAI API key (you can also set it as an environment variable)
+import openai
+
+
+
+
+
+# Create the LLM model and ConversationChain
+
+chat_model = ChatOpenAI(model="gpt-3.5-turbo",openai_api_key=OPENAI_API_KEY)  # or "gpt-4"
+conversation = ConversationChain(llm=chat_model)
+
+def chatbot_response(user_input):
+    # Get chatbot response using LangChain
+    response = conversation.predict(input=user_input)
+    
+    # Save the conversation to MongoDB
+    collection.insert_one({
+        'user_input': user_input,
+        'chatbot_response': response
+    })
+    
+    return response
+
+
+if __name__ == "__main__":
+    print("Welcome to the Chatbot!")
+    while True:
+        user_input = input("You: ")
+        if user_input.lower() == 'exit':
+            print("Goodbye!")
+            break
+        response = chatbot_response(user_input)
+        print("Chatbot:", response)
+
+
+
+
+

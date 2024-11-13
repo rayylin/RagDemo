@@ -1,0 +1,89 @@
+from langchain.embeddings import OpenAIEmbeddings
+from langchain.text_splitter import RecursiveCharacterTextSplitter
+import pdfplumber
+from pymongo import MongoClient
+import numpy as np
+
+from langchain.vectorstores import FAISS
+from langchain.schema import Document
+
+
+client = MongoClient(mongoString)
+db = client['chatbot_db']
+collection = db['knowledge_base']  # Collection for knowledge documents
+file_path1 = "C:\\Users\\dwade\\Downloads\\monopoly.pdf"
+
+
+
+
+
+
+# Function to extract text from PDF
+def extract_text_from_pdf(file_path):
+    text = ""
+    with pdfplumber.open(file_path) as pdf:
+        for page in pdf.pages:
+            text += page.extract_text() + "\n"
+    return text
+
+# Function to chunk text for embedding
+def chunk_text(text, chunk_size=500, chunk_overlap=100):
+    splitter = RecursiveCharacterTextSplitter(chunk_size=chunk_size, chunk_overlap=chunk_overlap)
+    return splitter.split_text(text)
+
+embeddings = OpenAIEmbeddings(api_key=OPENAI_API_KEY)
+
+# Function to create embeddings using the correct method
+def create_embeddings(chunks):
+    # Convert chunks into Document objects (required for FAISS)
+    documents = [Document(page_content=chunk) for chunk in chunks]
+    document_texts = [doc.page_content for doc in documents]
+    return embeddings.embed_documents(document_texts)
+
+# Create FAISS vector store using LangChain's FAISS wrapper
+def create_faiss_vector_store(file_path):
+    # Extract text from the PDF
+    text = extract_text_from_pdf(file_path)
+    
+    # Chunk the text
+    chunks = chunk_text(text)
+    
+    # Create embeddings for each chunk
+    chunk_embeddings = create_embeddings(chunks)
+    
+    # Convert the embeddings to numpy arrays
+    chunk_embeddings = np.array(chunk_embeddings).astype("float32")
+    
+    # Create FAISS vector store using LangChain's FAISS wrapper
+    faiss_vector_store = FAISS.from_documents([Document(page_content=chunk) for chunk in chunks], embeddings)
+    
+    return faiss_vector_store
+
+
+# Example usage
+faiss_store = create_faiss_vector_store(file_path1)
+
+
+def search_faiss(query):
+    query_embedding = embeddings.embed_query(query)  # Get embedding for the user's query
+    query_embedding = np.array(query_embedding).astype("float32")  # Convert to numpy array
+
+    # Perform similarity search
+    results = faiss_store.similarity_search(query_embedding, k=5)  # Retrieve top 5 results
+    return results
+
+
+
+def create_embeddings(chunks):
+    # Convert chunks into Document objects (required for FAISS)
+    documents = [Document(page_content=chunk) for chunk in chunks]
+    # Extract page_content from documents to pass to embed_documents()
+    document_texts = [doc.page_content for doc in documents]
+    embeddings_result = embeddings.embed_documents(document_texts)
+    
+    # Print embeddings to check
+    print(f"Generated Embeddings: {embeddings_result[:5]}")  # Print first 5 embeddings as a sample
+    
+    return embeddings_result
+
+
